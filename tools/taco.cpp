@@ -1083,9 +1083,15 @@ int main(int argc, char* argv[]) {
     }
   }
   else {
-    compute = lower(stmt, "compute",  computeWithAssemble, true);
-    assemble = lower(stmt, "assemble", true, false);
-    evaluate = lower(stmt, "evaluate", true, true);
+    if (spatial) {
+      compute = lower(stmt, "Compute",  computeWithAssemble, true);
+      assemble = lower(stmt, "Assemble", true, false);
+      evaluate = lower(stmt, "Evaluate", true, true);
+    } else {
+      compute = lower(stmt, "compute",  computeWithAssemble, true);
+      assemble = lower(stmt, "assemble", true, false);
+      evaluate = lower(stmt, "evaluate", true, true);
+    }
   }
 
   string packComment = 
