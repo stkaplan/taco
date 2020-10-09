@@ -339,10 +339,10 @@ void IRPrinter::visit(const Switch* op) {
 void IRPrinter::visit(const Load* op) {
   parentPrecedence = Precedence::LOAD;
   op->arr.accept(this);
-  stream << "(";
+  stream << "[";
   parentPrecedence = Precedence::LOAD;
   op->loc.accept(this);
-  stream << ")";
+  stream << "]";
 }
 
 void IRPrinter::visit(const Malloc* op) {
@@ -361,13 +361,13 @@ void IRPrinter::visit(const Sizeof* op) {
 void IRPrinter::visit(const Store* op) {
   doIndent();
   op->arr.accept(this);
-  stream << "(";
+  stream << "[";
   parentPrecedence = Precedence::TOP;
   op->loc.accept(this);
-  stream << ") = ";
+  stream << "] = ";
   parentPrecedence = Precedence::TOP;
   op->data.accept(this);
-  //stream << ";";
+  stream << ";";
   stream << endl;
 }
 
@@ -460,7 +460,7 @@ void IRPrinter::visit(const VarDecl* op) {
   parentPrecedence = Precedence::TOP;
   stream << " = ";
   op->rhs.accept(this);
-  //stream << ";";
+  stream << ";";
   stream << endl;
 }
 
@@ -507,7 +507,7 @@ void IRPrinter::visit(const Assign* op) {
     op->rhs.accept(this);
   }
 
-  //stream << ";";
+  stream << ";";
   stream << endl;
 }
 
@@ -529,9 +529,9 @@ void IRPrinter::visit(const Allocate* op) {
   else
     stream << "allocate ";
   op->var.accept(this);
-  stream << "(";
+  stream << "[";
   op->num_elements.accept(this);
-  stream << ")";
+  stream << "]";
   stream << endl;
 }
 
