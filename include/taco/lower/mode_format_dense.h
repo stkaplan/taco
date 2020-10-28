@@ -30,6 +30,9 @@ public:
   std::vector<ir::Expr> getArrays(ir::Expr tensor, int mode, 
                                   int level) const override;
 
+  std::vector<ir::Expr> getArrays(ir::Expr tensor, int mode,
+                                  int level, bool hasFiniteBound, int index) const;
+
 protected:
   ir::Expr getSizeArray(ModePack pack) const;
 };

@@ -256,6 +256,10 @@ public:
   ProvenanceGraph() {}
   ProvenanceGraph(IndexStmt concreteStmt);
 
+  void createBoundMap();
+
+  void createBoundMapHelper(IndexVar indexVar);
+
   /// Returns the children of a given index variable, {} if no children or if indexVar is not in graph
   std::vector<IndexVar> getChildren(IndexVar indexVar) const;
 
@@ -279,6 +283,10 @@ public:
 
   /// Returns innermost pos variable that can be used to directly iterate over positions
   bool getPosIteratorFullyDerivedDescendant(IndexVar indexVar, IndexVar *irregularChild) const;
+
+  std::vector<IndexVar> getLeafNodes() const;
+
+  size_t getVarBound(IndexVar indexVar) const;
 
   /// Node is irregular if its size depends on the input (otherwise is static)
   /// A node is irregular if there exists a path to an underived ancestor that does not fix size
@@ -332,6 +340,8 @@ public:
   /// does the index variable have an exact bound known at compile-time
   bool hasExactBound(IndexVar indexVar) const;
 
+  bool hasBoundedDescendant(IndexVar indexVar) const;
+
   /// Once indexVar is defined what new variables become recoverable
   /// returned in order of recovery (ie if parent being recovered allows its parent to also be recovered then parent comes first)
   std::vector<IndexVar> newlyRecoverableParents(IndexVar indexVar, std::set<IndexVar> previouslyDefined) const;
@@ -348,6 +358,8 @@ public:
 
   /// Retrieves set of all index variables
   std::set<IndexVar> getAllIndexVars() const;
+
+  std::map<IndexVar, size_t> getAllBounds() const;
 private:
   std::map<IndexVar, IndexVarRel> childRelMap;
   std::map<IndexVar, IndexVarRel> parentRelMap;
@@ -356,6 +368,8 @@ private:
   std::map<IndexVar, std::vector<IndexVar>> childrenMap;
 
   std::set<IndexVar> nodes;
+
+  std::map<IndexVar, size_t> boundsMap;
 };
 
 }
