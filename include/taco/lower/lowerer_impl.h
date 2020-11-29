@@ -338,7 +338,7 @@ protected:
   ir::Stmt codeToInitializeIteratorVar(Iterator iterator, std::vector<Iterator> iterators, std::vector<Iterator> rangers, std::vector<Iterator> mergers, ir::Expr coordinate, IndexVar coordinateVar);
 
   /// Initializes a temporary workspace
-  std::vector<ir::Stmt> codeToInitializeTemporary(Where where);
+  virtual std::vector<ir::Stmt> codeToInitializeTemporary(Where where);
 
   /// Recovers a derived indexvar from an underived variable.
   ir::Stmt codeToRecoverDerivedIndexVar(IndexVar underived, IndexVar indexVar, bool emitVarDecl);
@@ -362,10 +362,21 @@ protected:
   /// Expression that evaluates to true if none of the iteratators are exhausted
   ir::Expr checkThatNoneAreExhausted(std::vector<Iterator> iterators);
 
+  /// FIXME: Will need to change plugin interface. Currently accessor methods
+  /// Accessor methods needed for Spatial lowerer impl
   /// Accessor method for private attribute accessibleIterators
   util::ScopedSet<Iterator> getAccessibleIterators() const;
 
   std::map<TensorVar, TemporaryArrays> getTemporaryArrays() const;
+
+  ProvenanceGraph getProvGraph() const;
+
+  Iterators getIterators() const;
+
+  std::map<IndexVar, ir::Expr> getIndexVarToExprMap() const;
+
+  std::vector<IndexVar> getDefinedIndexVarsOrdered() const;
+  std::map<IndexVar, std::vector<ir::Expr>> getUnderivedBounds() const;
 
 private:
   bool assemble;
