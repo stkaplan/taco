@@ -575,6 +575,76 @@ void IRPrinter::visit(const GetProperty* op) {
   stream << op->name;
 }
 
+/// SPATIAL ONLY
+void IRPrinter::visit(const Reduce* op) {
+  doIndent();
+  stream << keywordString("for") << " ("
+         << keywordString(util::toString(op->var.type())) << " ";
+  op->var.accept(this);
+  stream << " = ";
+  op->start.accept(this);
+  stream << keywordString("; ");
+  op->var.accept(this);
+  stream << " < ";
+  parentPrecedence = BOTTOM;
+  op->end.accept(this);
+  stream << keywordString("; ");
+  op->var.accept(this);
+
+  auto lit = op->increment.as<Literal>();
+  if (lit != nullptr && ((lit->type.isInt()  && lit->equalsScalar(1)) ||
+                             (lit->type.isUInt() && lit->equalsScalar(1)))) {
+    stream << "++";
+  }
+  else {
+    stream << " += ";
+    op->increment.accept(this);
+  }
+  stream << ") {\n";
+
+  op->contents.accept(this);
+  doIndent();
+  stream << "}";
+  stream << endl;
+}
+
+void IRPrinter::visit(const MemStore* op) {
+  doIndent();
+  op->lhsMem.accept(this);
+  stream << "[";
+  parentPrecedence = Precedence::TOP;
+  op->start.accept(this);
+  stream << ":";
+  op->start.accept(this);
+  stream << "+";
+  op->offset.accept(this);
+  stream << "] = ";
+  parentPrecedence = Precedence::TOP;
+  op->rhsMem.accept(this);
+  stream << ";";
+  stream << endl;
+}
+
+void IRPrinter::visit(const MemLoad* op) {
+  doIndent();
+  op->lhsMem.accept(this);
+  stream << " = ";
+  op->rhsMem.accept(this);
+  stream << "[";
+  parentPrecedence = Precedence::TOP;
+  op->start.accept(this);
+  stream << ":";
+  op->start.accept(this);
+  stream << "+";
+  op->offset.accept(this);
+  stream << "]";
+  parentPrecedence = Precedence::TOP;
+  stream << ";";
+  stream << endl;
+}
+
+/// SPATIAL ONLY END
+
 void IRPrinter::resetNameCounters() {
   // seed the unique names with all C99 keywords
   // from: http://en.cppreference.com/w/c/keyword
