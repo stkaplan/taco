@@ -603,7 +603,6 @@ IndexStmt Parallelize::apply(IndexStmt stmt, std::string* reason) const {
           return;
         }
 
-        cout << "transform" << endl;
         stmt = forall(i, foralli.getStmt(), parallelize.getParallelUnit(), parallelize.getOutputRaceStrategy(), foralli.getUnrollFactor());
         return;
       }
