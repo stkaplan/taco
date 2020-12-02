@@ -271,7 +271,7 @@ LowererImpl::lower(IndexStmt stmt, string name,
     for (auto& result : results) {
       if (result.getOrder() == 0) {
         Expr resultIR = resultVars.at(result);
-        Expr vals = GetProperty::make(resultIR, TensorProperty::Values, 0, 20);
+        Expr vals = GetProperty::make(resultIR, TensorProperty::Values);
         header.push_back(Allocate::make(vals, 1));
       }
     }
@@ -295,7 +295,7 @@ LowererImpl::lower(IndexStmt stmt, string name,
         taco_iassert(util::contains(tensorVars, result));
         Expr resultIR = scalars.at(result);
         Expr varValueIR = tensorVars.at(result);
-        Expr valuesArrIR = GetProperty::make(resultIR, TensorProperty::Values, 0, 21);
+        Expr valuesArrIR = GetProperty::make(resultIR, TensorProperty::Values);
         footer.push_back(Store::make(valuesArrIR, 0, varValueIR, markAssignsAtomicDepth > 0, atomicParallelUnit));
       }
     }
@@ -1659,7 +1659,7 @@ ir::Expr LowererImpl::getValuesArray(TensorVar var) const
 {
   return (util::contains(temporaryArrays, var))
          ? temporaryArrays.at(var).values
-         : GetProperty::make(getTensorVar(var), TensorProperty::Values, 0, 33);
+         : GetProperty::make(getTensorVar(var), TensorProperty::Values);
 }
 
 
@@ -1775,7 +1775,7 @@ Stmt LowererImpl::initResultArrays(vector<Access> writes,
     taco_iassert(!iterators.empty());
 
     Expr tensor = getTensorVar(write.getTensorVar());
-    Expr valuesArr = GetProperty::make(tensor, TensorProperty::Values, 0, 23);
+    Expr valuesArr = GetProperty::make(tensor, TensorProperty::Values);
 
     Expr parentSize = 1;
     if (generateAssembleCode()) {
@@ -1891,7 +1891,7 @@ ir::Stmt LowererImpl::finalizeResultArrays(std::vector<Access> writes) {
     if (!generateComputeCode()) {
       // Allocate memory for values array after assembly if not also computing
       Expr tensor = getTensorVar(write.getTensorVar());
-      Expr valuesArr = GetProperty::make(tensor, TensorProperty::Values, 0, 24);
+      Expr valuesArr = GetProperty::make(tensor, TensorProperty::Values);
       result.push_back(Allocate::make(valuesArr, parentSize));
     }
   }
@@ -1903,7 +1903,7 @@ Stmt LowererImpl::defineScalarVariable(TensorVar var, bool zero) {
   Expr varValueIR = Var::make(var.getName() + "_val", type, false, false);
   Expr init = (zero) ? ir::Literal::zero(type)
                      : Load::make(GetProperty::make(tensorVars.at(var),
-                                                    TensorProperty::Values, 0, 25));
+                                                    TensorProperty::Values));
   tensorVars.find(var)->second = varValueIR;
 
   return VarDecl::make(varValueIR, init, true);
@@ -1942,7 +1942,7 @@ Stmt LowererImpl::initResultArrays(IndexVar var, vector<Access> writes,
   vector<Stmt> result;
   for (auto& write : writes) {
     Expr tensor = getTensorVar(write.getTensorVar());
-    Expr values = GetProperty::make(tensor, TensorProperty::Values, 0, 28);
+    Expr values = GetProperty::make(tensor, TensorProperty::Values);
     vector<Iterator> iterators = getIteratorsFrom(var, getIterators(write));
 
     if (iterators.empty()) {
@@ -2029,7 +2029,7 @@ Stmt LowererImpl::resizeAndInitValues(const std::vector<Iterator>& appenders,
     }
 
     Expr tensor = appender.getTensor(); 
-    Expr values = GetProperty::make(tensor, TensorProperty::Values, 0, 30);
+    Expr values = GetProperty::make(tensor, TensorProperty::Values);
     Expr capacity = getCapacityVar(appender.getTensor());
     Expr pos = appender.getIteratorVar();
 
@@ -2115,7 +2115,7 @@ Stmt LowererImpl::reduceDuplicateCoordinates(Expr coordinate,
     Expr segendVar = iterator.getSegendVar();
     Expr reducedVal = iterator.isLeaf() ? getReducedValueVar(access) : Expr();
     Expr tensorVar = getTensorVar(access.getTensorVar());
-    Expr tensorVals = GetProperty::make(tensorVar, TensorProperty::Values, 0, 32);
+    Expr tensorVals = GetProperty::make(tensorVar, TensorProperty::Values);
 
     // Initialize variable storing reduced component value.
     if (reducedVal.defined()) {
