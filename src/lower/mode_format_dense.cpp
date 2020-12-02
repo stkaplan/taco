@@ -73,6 +73,8 @@ Stmt DenseModeFormat::getInsertFinalizeLevel(Expr szPrev,
 
 vector<Expr> DenseModeFormat::getArrays(Expr tensor, int mode, 
                                         int level, bool hasFiniteBound, int index) const {
+  if (hasFiniteBound)
+    return {GetProperty::make(tensor, TensorProperty::Dimension, mode, index)};
   return {GetProperty::make(tensor, TensorProperty::Dimension, mode)};
 }
 

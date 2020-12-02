@@ -245,6 +245,7 @@ void CodeGen_C::compile(Stmt stmt, bool isFirst) {
     out << cHeaders;
   }
   out << endl;
+
   // generate code for the Stmt
   stmt.accept(this);
 }
