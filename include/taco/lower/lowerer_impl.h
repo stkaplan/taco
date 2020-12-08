@@ -374,6 +374,7 @@ protected:
   util::ScopedSet<Iterator> getAccessibleIterators() const;
 
   std::map<TensorVar, TemporaryArrays> getTemporaryArrays() const;
+  void insertTemporaryArrays(TensorVar key, TemporaryArrays val);
 
   ProvenanceGraph getProvGraph() const;
 
@@ -383,6 +384,8 @@ protected:
 
   std::vector<IndexVar> getDefinedIndexVarsOrdered() const;
   std::map<IndexVar, std::vector<ir::Expr>> getUnderivedBounds() const;
+
+  ParallelUnit getAtomicParallelUnit() const;
 
 private:
   bool assemble;

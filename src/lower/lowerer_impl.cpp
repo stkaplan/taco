@@ -334,7 +334,8 @@ Stmt LowererImpl::lowerAssignment(Assignment assignment)
     else {
       Expr values = getValuesArray(result);
       Expr loc = generateValueLocExpr(assignment.getLhs());
-
+      cout << "Debug: Values - ";
+      cout << values << " " << isa<GetProperty>(values) << endl;
       Stmt computeStmt;
       if (!assignment.getOperator().defined()) {
         computeStmt = Store::make(values, loc, rhs, markAssignsAtomicDepth > 0, atomicParallelUnit);
@@ -1906,7 +1907,7 @@ Stmt LowererImpl::defineScalarVariable(TensorVar var, bool zero) {
                                                     TensorProperty::Values));
   tensorVars.find(var)->second = varValueIR;
 
-  return VarDecl::make(varValueIR, init, true);
+  return VarDecl::make(varValueIR, init, MemoryLocation::SpatialReg);
 }
 
 static
@@ -2510,6 +2511,9 @@ util::ScopedSet<Iterator> LowererImpl::getAccessibleIterators() const {
 map<TensorVar, TemporaryArrays> LowererImpl::getTemporaryArrays() const {
   return temporaryArrays;
 }
+void LowererImpl::insertTemporaryArrays(TensorVar key, TemporaryArrays val) {
+  temporaryArrays.insert({key, val});
+}
 
 ProvenanceGraph LowererImpl::getProvGraph() const {
   return provGraph;
@@ -2531,4 +2535,7 @@ map<IndexVar, ir::Expr> LowererImpl::getIndexVarToExprMap() const {
   return indexVarToExprMap;
 }
 
+ParallelUnit LowererImpl::getAtomicParallelUnit() const {
+  return atomicParallelUnit;
+}
 }

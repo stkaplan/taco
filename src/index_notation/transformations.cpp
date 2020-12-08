@@ -181,6 +181,10 @@ static bool containsExpr(Assignment assignment, IndexExpr expr) {
     void visit(const BinaryExprNode* node) {
       if (equals(IndexExpr(node), expr)) {
         contains = true;
+      } else if (equals(IndexExpr(node->a), expr)) {
+        contains = true;
+      } else if (equals(IndexExpr(node->b), expr)) {
+        contains = true;
       }
       else {
         IndexNotationVisitor::visit(node);
@@ -203,6 +207,7 @@ static Assignment getAssignmentContainingExpr(IndexStmt stmt, IndexExpr expr) {
   match(stmt,
         function<void(const AssignmentNode*,Matcher*)>([&assignment, &expr](
             const AssignmentNode* node, Matcher* ctx) {
+          cout << node->rhs << endl;
           if (containsExpr(node, expr)) {
             assignment = node;
           }
@@ -236,13 +241,14 @@ IndexStmt Precompute::apply(IndexStmt stmt, std::string* reason) const {
         TensorVar ws = precompute.getWorkspace();
         IndexExpr e = precompute.getExpr();
         IndexVar iw = precompute.getiw();
+        if (isa<Assignment>(s) && containsExpr(to<Assignment>(s), e)) {
+          IndexStmt consumer = forall(i, replace(s, {{e, ws(i)}}));
+          IndexStmt producer = forall(iw, ws(iw) = replace(e, {{i, iw}}));
+          Where where(consumer, producer);
 
-        IndexStmt consumer = forall(i, replace(s, {{e, ws(i)}}));
-        IndexStmt producer = forall(iw, ws(iw) = replace(e, {{i,iw}}));
-        Where where(consumer, producer);
-
-        stmt = where;
-        return;
+          stmt = where;
+          return;
+        }
       }
       IndexNotationRewriter::visit(node);
     }
