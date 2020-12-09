@@ -236,6 +236,19 @@ void IRVisitor::visit(const Print* op) {
     e.accept(this);
 }
 
+void IRVisitor::visit(const LoadBulk* op) {
+  op->arr.accept(this);
+  op->locStart.accept(this);
+  op->locEnd.accept(this);
+}
+
+void IRVisitor::visit(const StoreBulk* op) {
+  op->arr.accept(this);
+  op->locStart.accept(this);
+  op->locEnd.accept(this);
+  op->data.accept(this);
+}
+
 /// SPATIAL ONLY
 void IRVisitor::visit(const Reduce* op) {
   op->var.accept(this);
@@ -243,7 +256,6 @@ void IRVisitor::visit(const Reduce* op) {
   op->start.accept(this);
   op->end.accept(this);
   op->increment.accept(this);
-  op->par.accept(this);
   op->contents.accept(this);
   if (op->returnExpr.defined())
     op->returnExpr.accept(this);

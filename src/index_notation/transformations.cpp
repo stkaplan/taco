@@ -452,6 +452,7 @@ struct Parallelize::Content {
   IndexVar i;
   ParallelUnit  parallel_unit;
   OutputRaceStrategy output_race_strategy;
+  int numChunks;
 };
 
 
@@ -460,10 +461,11 @@ Parallelize::Parallelize() : content(nullptr) {
 
 Parallelize::Parallelize(IndexVar i) : Parallelize(i, ParallelUnit::DefaultUnit, OutputRaceStrategy::NoRaces) {}
 
-Parallelize::Parallelize(IndexVar i, ParallelUnit parallel_unit, OutputRaceStrategy output_race_strategy) : content(new Content) {
+Parallelize::Parallelize(IndexVar i, ParallelUnit parallel_unit, OutputRaceStrategy output_race_strategy, int numChunks) : content(new Content) {
   content->i = i;
   content->parallel_unit = parallel_unit;
   content->output_race_strategy = output_race_strategy;
+  content->numChunks = numChunks;
 }
 
 
@@ -477,6 +479,10 @@ ParallelUnit Parallelize::getParallelUnit() const {
 
 OutputRaceStrategy Parallelize::getOutputRaceStrategy() const {
   return content->output_race_strategy;
+}
+
+int Parallelize::getNumChunks() const {
+  return content->numChunks;
 }
 
 IndexStmt Parallelize::apply(IndexStmt stmt, std::string* reason) const {
@@ -548,7 +554,6 @@ IndexStmt Parallelize::apply(IndexStmt stmt, std::string* reason) const {
         );
         MergeLattice underivedLattice = MergeLattice::make(underivedForall, iterators, provGraph, definedIndexVars);
 
-
         if(underivedLattice.results().empty() && parallelize.getOutputRaceStrategy() == OutputRaceStrategy::Temporary) {
           // Need to precompute reduction
 
@@ -579,7 +584,8 @@ IndexStmt Parallelize::apply(IndexStmt stmt, std::string* reason) const {
             IndexStmt producer = ReplaceReductionExpr(map<Access, Access>({{assignment->lhs, w(i)}})).rewrite(precomputed_stmt);
             taco_iassert(isa<Forall>(producer));
             Forall producer_forall = to<Forall>(producer);
-            producer = forall(producer_forall.getIndexVar(), producer_forall.getStmt(), parallelize.getParallelUnit(), parallelize.getOutputRaceStrategy(), foralli.getUnrollFactor());
+            producer = forall(producer_forall.getIndexVar(), producer_forall.getStmt(), parallelize.getParallelUnit(), parallelize.getOutputRaceStrategy(),
+                              foralli.getUnrollFactor());
 
             // build consumer that writes from temporary to output, mark consumer as parallel reduction
             ParallelUnit reductionUnit = ParallelUnit::CPUThreadGroupReduction;
@@ -609,7 +615,8 @@ IndexStmt Parallelize::apply(IndexStmt stmt, std::string* reason) const {
           return;
         }
 
-        stmt = forall(i, foralli.getStmt(), parallelize.getParallelUnit(), parallelize.getOutputRaceStrategy(), foralli.getUnrollFactor());
+
+        stmt = forall(i, foralli.getStmt(), parallelize.getParallelUnit(), parallelize.getOutputRaceStrategy(), foralli.getUnrollFactor(), parallelize.getNumChunks());
         return;
       }
 

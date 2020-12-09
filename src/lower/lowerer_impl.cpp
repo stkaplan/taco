@@ -334,8 +334,7 @@ Stmt LowererImpl::lowerAssignment(Assignment assignment)
     else {
       Expr values = getValuesArray(result);
       Expr loc = generateValueLocExpr(assignment.getLhs());
-      cout << "Debug: Values - ";
-      cout << values << " " << isa<GetProperty>(values) << endl;
+
       Stmt computeStmt;
       if (!assignment.getOperator().defined()) {
         computeStmt = Store::make(values, loc, rhs, markAssignsAtomicDepth > 0, atomicParallelUnit);
@@ -911,7 +910,7 @@ Stmt LowererImpl::lowerForallDimension(Forall forall,
       // FIXME: reduction can only handle adds for now
       taco_iassert(isa<taco::Add>(forallExpr.getOperator()));
       if (should_use_Spatial_codegen()) {
-        return Reduce::make(coordinate, reg, bounds[0], bounds[1], 1, Scope::make(reductionBody, reductionExpr));
+        return Reduce::make(coordinate, reg, bounds[0], bounds[1], 1, Scope::make(reductionBody, reductionExpr), true, forall.getNumChunks());
       }
 
     }
@@ -919,7 +918,8 @@ Stmt LowererImpl::lowerForallDimension(Forall forall,
 
   return Block::blanks(For::make(coordinate, bounds[0], bounds[1], 1, body,
                                  kind,
-                                 ignoreVectorize ? ParallelUnit::NotParallel : forall.getParallelUnit(), ignoreVectorize ? 0 : forall.getUnrollFactor()),
+                                 ignoreVectorize ? ParallelUnit::NotParallel : forall.getParallelUnit(),
+                                 ignoreVectorize ? 0 : forall.getUnrollFactor(), 0, forall.getNumChunks()),
                        posAppend);
 }
 

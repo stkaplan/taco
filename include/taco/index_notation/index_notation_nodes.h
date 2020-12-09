@@ -213,8 +213,8 @@ struct YieldNode : public IndexStmtNode {
 };
 
 struct ForallNode : public IndexStmtNode {
-  ForallNode(IndexVar indexVar, IndexStmt stmt, ParallelUnit parallel_unit, OutputRaceStrategy  output_race_strategy, size_t unrollFactor = 0)
-      : indexVar(indexVar), stmt(stmt), parallel_unit(parallel_unit), output_race_strategy(output_race_strategy), unrollFactor(unrollFactor) {}
+  ForallNode(IndexVar indexVar, IndexStmt stmt, ParallelUnit parallel_unit, OutputRaceStrategy  output_race_strategy, size_t unrollFactor = 0, size_t numChunks = 1)
+      : indexVar(indexVar), stmt(stmt), parallel_unit(parallel_unit), output_race_strategy(output_race_strategy), unrollFactor(unrollFactor), numChunks(numChunks){}
 
   void accept(IndexStmtVisitorStrict* v) const {
     v->visit(this);
@@ -225,6 +225,7 @@ struct ForallNode : public IndexStmtNode {
   ParallelUnit parallel_unit;
   OutputRaceStrategy  output_race_strategy;
   size_t unrollFactor = 0;
+  size_t numChunks = 1;
 };
 
 struct WhereNode : public IndexStmtNode {
