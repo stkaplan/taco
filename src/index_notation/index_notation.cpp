@@ -2373,6 +2373,22 @@ std::map<Forall, Where> getTemporaryLocations(IndexStmt stmt) {
   return temporaryLocs;
 }
 
+std::map<Forall, Assignment> getBulkMemTransfers(IndexStmt stmt) {
+  map<Forall, Assignment> bulkTransfers;
+  Forall f = Forall();
+  match(stmt,
+        function<void(const ForallNode*, Matcher*)>([&](const ForallNode* op, Matcher* ctx) {
+          f = op;
+          ctx->match(op->stmt);
+        }),
+        function<void(const AssignmentNode*, Matcher*)>([&](const AssignmentNode* a, Matcher* ctx) {
+          if (!(f == IndexStmt()) && (isa<Access>(a->rhs)))
+            bulkTransfers.insert({f, Assignment(a)});
+        })
+  );
+  return bulkTransfers;
+}
+
 std::vector<TensorVar> getTemporaries(IndexStmt stmt) {
   vector<TensorVar> temporaries;
   bool firstAssignment = true;

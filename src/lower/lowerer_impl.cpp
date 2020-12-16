@@ -122,6 +122,9 @@ LowererImpl::lower(IndexStmt stmt, string name,
   // Create datastructure needed for temporary workspace hoisting/reuse
   temporaryInitialization = getTemporaryLocations(stmt);
 
+  // Create datastructure needed for bulk memory load/store optimization from forall
+  bulkMemTransfer = getBulkMemTransfers(stmt);
+
   // Convert tensor results and arguments IR variables
   map<TensorVar, Expr> resultVars;
   vector<Expr> resultsIR = createVars(results, &resultVars, unpack);
@@ -527,6 +530,8 @@ Stmt LowererImpl::lowerForall(Forall forall)
     else if (iterator.isDimensionIterator()) {
       loops = lowerForallDimension(forall, point.locators(),
                                    inserters, appenders, reducedAccesses, recoveryStmt);
+      cout << "Debug ----" << endl;
+      cout << loops << endl;
     }
     // Emit position iteration loop
     else if (iterator.hasPosIter()) {
@@ -914,6 +919,24 @@ Stmt LowererImpl::lowerForallDimension(Forall forall,
       }
 
     }
+  }
+
+  if (bulkMemTransfer.find(forall) != bulkMemTransfer.end() && should_use_Spatial_codegen()) {
+    auto assignment = bulkMemTransfer.at(forall);
+    Expr valuesRhs = getValuesArray(assignment.getLhs().getTensorVar());
+    Expr valuesLhs = getValuesArray(to<Access>(assignment.getRhs()).getTensorVar());
+
+    Stmt vars = lowerForallReductionBody(coordinate, forall.getStmt(),
+                                         locators, inserters, appenders, reducedAccesses);
+
+    auto locs = lowerForallBulk(forall, coordinate, forall.getStmt(),
+                                 locators, inserters, appenders, reducedAccesses);
+
+    Expr data = LoadBulk::make(valuesLhs, ir::Add::make(locs[1], bounds[0]), ir::Add::make(locs[1], bounds[1]));
+
+
+
+    return Block::make(vars, StoreBulk::make(valuesRhs, ir::Add::make(locs[0], bounds[0]), ir::Add::make(locs[0], bounds[1]), data));
   }
 
   return Block::blanks(For::make(coordinate, bounds[0], bounds[1], 1, body,
@@ -1342,6 +1365,7 @@ Stmt LowererImpl::lowerForallBody(Expr coordinate, IndexStmt stmt,
                                   vector<Iterator> inserters,
                                   vector<Iterator> appenders,
                                   const set<Access>& reducedAccesses) {
+
   Stmt initVals = resizeAndInitValues(appenders, reducedAccesses);
 
   // Inserter positions
@@ -1398,6 +1422,34 @@ Stmt LowererImpl::lowerForallReductionBody(Expr coordinate, IndexStmt stmt,
                      declLocatorPosVars);
 }
 
+vector<Expr> LowererImpl::lowerForallBulk(Forall forall, Expr coordinate, IndexStmt stmt,
+                                           vector<Iterator> locators,
+                                           vector<Iterator> inserters,
+                                           vector<Iterator> appenders,
+                                           const set<Access>& reducedAccesses) {
+  Stmt initVals = resizeAndInitValues(appenders, reducedAccesses);
+
+  // Inserter positions
+  Stmt declInserterPosVars = declLocatePosVars(inserters);
+
+  // Locate positions
+  Stmt declLocatorPosVars = declLocatePosVars(locators);
+
+  if (captureNextLocatePos) {
+    capturedLocatePos = Block::make(declInserterPosVars, declLocatorPosVars);
+    captureNextLocatePos = false;
+  }
+
+  // TODO: rewriter here
+
+  cout << "Debug: Inserters " << declInserterPosVars << endl;
+  cout << "Debug: Locator " << declLocatorPosVars << endl;
+  // TODO: Emit code to insert coordinates
+  Expr storeStart = ir::Literal::make(0);
+  Expr loadStart = ir::Literal::make(0);
+  return {storeStart, loadStart};
+}
+
 vector<Stmt> LowererImpl::codeToInitializeTemporary(Where where) {
   TensorVar temporary = where.getTemporary();
 
@@ -1430,9 +1482,11 @@ vector<Stmt> LowererImpl::codeToInitializeTemporary(Where where) {
       if ((isa<Forall>(where.getProducer()) && inParallelLoopDepth == 0) || !should_use_CUDA_codegen()) {
         decl = VarDecl::make(values, ir::Literal::make(0));
       }
+
       Stmt allocate = Allocate::make(values, size);
 
       Expr p = Var::make("p" + temporary.getName(), Int());
+
       Stmt zeroInit = Store::make(values, p, ir::Literal::zero(temporary.getType().getDataType()));
       Stmt zeroInitLoop = For::make(p, 0, size, 1, zeroInit, LoopKind::Serial);
 
@@ -1443,7 +1497,17 @@ vector<Stmt> LowererImpl::codeToInitializeTemporary(Where where) {
       this->temporaryArrays.insert({temporary, arrays});
 
       freeTemporary = Free::make(values);
+
       initializeTemporary = Block::make(decl, allocate, zeroInitLoop);
+
+      // Optimization: Don't zero initialize temporary if there is no reduction across temporary
+      if (isa<Forall>(where.getProducer())) {
+        Forall forall = to<Forall>(where.getProducer());
+        if (isa<Assignment>(forall.getStmt()) && !to<Assignment>(forall.getStmt()).getOperator().defined()) {
+          initializeTemporary = Block::make(decl, allocate);
+        }
+      }
+
     }
   }
   return {initializeTemporary, freeTemporary};
@@ -2102,7 +2166,6 @@ Stmt LowererImpl::declLocatePosVars(vector<Iterator> locators) {
   }
   return result.empty() ? Stmt() : Block::make(result);
 }
-
 
 Stmt LowererImpl::reduceDuplicateCoordinates(Expr coordinate, 
                                              vector<Iterator> iterators,

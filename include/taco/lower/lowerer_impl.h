@@ -180,6 +180,13 @@ protected:
                                    std::vector<Iterator> appenders,
                                    const std::set<Access>& reducedAccesses);
 
+  virtual std::vector<ir::Expr> lowerForallBulk(Forall forall, ir::Expr coordinate, IndexStmt stmt,
+                                            std::vector<Iterator> locaters,
+                                            std::vector<Iterator> inserters,
+                                            std::vector<Iterator> appenders,
+                                            const std::set<Access>& reducedAccesses);
+
+
   /// Lower a where statement.
   virtual ir::Stmt lowerWhere(Where where);
 
@@ -396,6 +403,8 @@ private:
 
   /// Map used to hoist temporary workspace initialization
   std::map<Forall, Where> temporaryInitialization;
+
+  std::map<Forall, Assignment> bulkMemTransfer;
 
   /// Map from tensor variables in index notation to variables in the IR
   std::map<TensorVar, ir::Expr> tensorVars;
