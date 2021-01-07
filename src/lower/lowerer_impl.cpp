@@ -126,11 +126,6 @@ LowererImpl::lower(IndexStmt stmt, string name,
   tempNoZeroInit = getTemporariesWithoutReduction(stmt);
   forallReductions = getForallReductions(stmt);
 
-  cout << "Debug: TEMP NO MEM INIT MAP" << endl;
-  for (auto it = tempNoZeroInit.begin(); it != tempNoZeroInit.end(); it++) {
-    cout << it->first.getName() << ", " << it->second << endl;
-  }
-
   // Create datastructure needed for bulk memory load/store optimization from forall
   bulkMemTransfer = getBulkMemTransfers(stmt);
 
@@ -262,7 +257,6 @@ LowererImpl::lower(IndexStmt stmt, string name,
   if (generateComputeCode()) {
     for (auto& result : results) {
       if (isScalar(result.getType())) {
-        cout << "RESULT: " << result << " " << MemoryLocation_NAMES[(int)result.getMemoryLocation()] << endl;
         taco_iassert(!util::contains(scalars, result));
         taco_iassert(util::contains(tensorVars, result));
         scalars.insert({result, tensorVars.at(result)});
@@ -271,7 +265,6 @@ LowererImpl::lower(IndexStmt stmt, string name,
     }
     for (auto& argument : arguments) {
       if (isScalar(argument.getType())) {
-        cout << "ARGUMENT: " << argument << " " << MemoryLocation_NAMES[(int)argument.getMemoryLocation()] << endl;
         taco_iassert(!util::contains(scalars, argument));
         taco_iassert(util::contains(tensorVars, argument));
         scalars.insert({argument, tensorVars.at(argument)});
@@ -310,7 +303,6 @@ LowererImpl::lower(IndexStmt stmt, string name,
         Expr resultIR = scalars.at(result);
         Expr varValueIR = tensorVars.at(result);
         Expr valuesArrIR = GetProperty::make(resultIR, TensorProperty::Values);
-        cout << "Footer RESULT" << MemoryLocation_NAMES[(int)result.getMemoryLocation()] << endl;
         if (should_use_Spatial_codegen()) {
           footer.push_back(Store::make(valuesArrIR, 0, varValueIR, result.getMemoryLocation(), MemoryLocation::SpatialReg, markAssignsAtomicDepth > 0, atomicParallelUnit));
 
@@ -548,8 +540,6 @@ Stmt LowererImpl::lowerForall(Forall forall)
     else if (iterator.isDimensionIterator()) {
       loops = lowerForallDimension(forall, point.locators(),
                                    inserters, appenders, reducedAccesses, recoveryStmt);
-      //cout << "Debug ----" << endl;
-      //cout << loops << endl;
     }
     // Emit position iteration loop
     else if (iterator.hasPosIter()) {
@@ -899,8 +889,6 @@ Stmt LowererImpl::lowerForallDimension(Forall forall,
   Stmt body = lowerForallBody(coordinate, forall.getStmt(),
                               locators, inserters, appenders, reducedAccesses);
 
-  //cout << "BODY ---" << endl;
-  //cout << body << endl;
 
   if (forall.getParallelUnit() != ParallelUnit::NotParallel && forall.getOutputRaceStrategy() == OutputRaceStrategy::Atomics) {
     markAssignsAtomicDepth--;
@@ -937,14 +925,12 @@ Stmt LowererImpl::lowerForallDimension(Forall forall,
       // FIXME: reduction can only handle adds for now
       taco_iassert(isa<taco::Add>(forallExpr.getOperator()));
 
-      cout << forall.getIndexVar() << ": " << forallExpr << endl;
       if (should_use_Spatial_codegen() && forallExpr.getOperator().defined()) {
         return Block::make(regDecl, Reduce::make(coordinate, reg, bounds[0], bounds[1], 1, Scope::make(reductionBody, reductionExpr), true, forall.getNumChunks()));
       }
 
     }
     else if (forallReductions.find(forall) != forallReductions.end() && !provGraph.getParents(forall.getIndexVar()).empty()) {
-        cout << "REduction parent: " << provGraph.getParents(forall.getIndexVar()).empty() << endl;
         Assignment forallExpr = forallReductions.at(forall);
         Expr reg = Var::make("r_" + forall.getIndexVar().getName() + "_" + forallExpr.getLhs().getTensorVar().getName(),
                              forallExpr.getLhs().getDataType());
@@ -995,10 +981,7 @@ Stmt LowererImpl::lowerForallDimension(Forall forall,
                                  ignoreVectorize ? ParallelUnit::NotParallel : forall.getParallelUnit(),
                                  ignoreVectorize ? 0 : forall.getUnrollFactor(), 0, forall.getNumChunks()),
                        posAppend);
-  cout << "Return Expr --- \n" << returnExpr << endl;
-  cout << bounds[0] << endl;
-  cout << bounds[1] << endl;
-  cout << body << endl;
+
   return returnExpr;
 }
 
@@ -1505,13 +1488,6 @@ vector<tuple<Stmt, Expr>> LowererImpl::lowerForallBulk(Forall forall, Expr coord
 
   Stmt posVarsNew = rewriteStmtRemoveDuplicates(declInserterPosVarsNew, declLocatorPosVarsNew);
 
-  cout << "Debug BULK: " << posVarsNew << endl;
-  cout << "Debug: Inserters \n Original: " << declInserterPosVars << endl;
-  cout << "New Stmt: " << declInserterPosVarsNew << endl;
-  cout << "New Expr: " << declInserterPosVarsExpr << endl;
-  cout << "Debug: Locator \n Original: " << declLocatorPosVars << endl;
-  cout << "New Stmt: " << declLocatorPosVarsNew << endl;
-  cout << "New Expr: " << declLocatorPosVarsExpr << endl;
   // TODO: Emit code to insert coordinates
   Expr storeStart = ir::Literal::make(0);
   Expr loadStart = ir::Literal::make(0);

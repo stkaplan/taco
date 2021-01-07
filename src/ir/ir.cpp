@@ -1184,7 +1184,6 @@ Stmt rewriteBulkStmt(Stmt stmt, IndexVar indexVar) {
     }
 
     void visit(const Var* node) {
-      std::cout << "Var Name: " << node->name << ", " << i.getName() << std::endl;
       if (node->name == i.getName()) {
         expr = Literal::make(0);
       }
@@ -1226,7 +1225,6 @@ Expr rewriteBulkExpr(Stmt stmt, IndexVar indexVar) {
     BulkExprRewriter(IndexVar indexVar) : i(indexVar) {}
 
     void visit(const Var* node) {
-      std::cout << "Var Name: " << node->name << ", " << i.getName() << std::endl;
       if (node->name == i.getName()) {
         expr = Literal::make(0);
       }
@@ -1236,9 +1234,7 @@ Expr rewriteBulkExpr(Stmt stmt, IndexVar indexVar) {
     }
   };
   Expr rewrittenExpr = BulkExprFinder().visit(stmt);
-  std::cout << "Intermediate: " << rewrittenExpr << std::endl;
   Expr returnExpr = BulkExprRewriter(indexVar).rewrite(rewrittenExpr);
-  std::cout << "Return: " << returnExpr << std::endl;
   return returnExpr;
 }
 
