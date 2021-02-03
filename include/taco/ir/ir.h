@@ -501,8 +501,9 @@ struct Load : public ExprNode<Load> {
 struct Malloc : public ExprNode<Malloc> {
 public:
   Expr size;
+  MemoryLocation memoryLocation;
 
-  static Expr make(Expr size);
+  static Expr make(Expr size, MemoryLocation memoryLocation=MemoryLocation::Default);
 
   static const IRNodeType _type_info = IRNodeType::Malloc;
 };
@@ -697,9 +698,10 @@ struct Allocate : public StmtNode<Allocate> {
   Expr num_elements;
   Expr old_elements; // used for realloc in CUDA
   bool is_realloc;
+  MemoryLocation memoryLocation;
   
   static Stmt make(Expr var, Expr num_elements, bool is_realloc=false,
-                   Expr old_elements=Expr());
+                   Expr old_elements=Expr(), MemoryLocation memoryLocation=MemoryLocation::Default);
   
   static const IRNodeType _type_info = IRNodeType::Allocate;
 };

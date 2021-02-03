@@ -963,7 +963,7 @@ std::map<Forall, Where> getTemporaryLocations(IndexStmt stmt);
 
 /// Returns a map of temporaries that do NOT have a reduction op in the producer where stmt
 std::map<TensorVar, Where> getTemporariesWithoutReduction(IndexStmt stmt);
-std::map<Forall, Assignment> getForallReductions(IndexStmt stmt);
+std::map<Forall, std::pair<int, Assignment>> getForallReductions(IndexStmt stmt);
 
 // [Olivia]
 /// Returns a map of assigmnet statements that can be represented as LoadBulk or LoadStores and their parent forall stmt
